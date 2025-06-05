@@ -14,12 +14,10 @@ void process_pixels_premult_rotate_flip(const uint8_t* input_data, int width, in
             uint8_t r = input_data[src_index + 2];
             uint8_t a = input_data[src_index + 3];
 
-            // Premultiply RGB by alpha
             uint16_t r_p = (r * a) / 255;
             uint16_t g_p = (g * a) / 255;
             uint16_t b_p = (b * a) / 255;
 
-            // Calculate dst pixel with rotation 90° CCW + vertical flip
             int dst_x = y;
             int dst_y = width - 1 - x;
             int dst_index = (dst_y * new_width + dst_x) * 4;
@@ -36,18 +34,14 @@ __declspec(dllexport)
 int update_layered_window(HWND hwnd, unsigned char* pixel_data, int width, int height) {
     if (!hwnd || !pixel_data || width <= 0 || height <= 0) return 0;
 
-    // Get current extended style
     LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
 
-    // Set layered, hide from taskbar by adding toolwindow and removing appwindow
     exStyle |= WS_EX_LAYERED | WS_EX_TOOLWINDOW;
     exStyle &= ~WS_EX_APPWINDOW;
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
 
-    // Set desktop as owner to hide from taskbar
     SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, (LONG_PTR)GetDesktopWindow());
 
-    // Apply style changes without activating window
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
@@ -70,10 +64,8 @@ int update_layered_window(HWND hwnd, unsigned char* pixel_data, int width, int h
         return 0;
     }
 
-    // Clear bits to zero to avoid junk pixels
     memset(bits, 0, width * height * 4);
 
-    // Copy pixel data (assumed BGRA format)
     SetDIBits(hdcMem, hBitmap, 0, height, pixel_data, &bmi, DIB_RGB_COLORS);
 
 
@@ -86,8 +78,7 @@ int update_layered_window(HWND hwnd, unsigned char* pixel_data, int width, int h
     POINT ptDst = { rect.left, rect.top };
 
     BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-    GdiFlush(); // after the call to UpdateLayeredWindow
-
+    GdiFlush();
 
     BOOL result = UpdateLayeredWindow(hwnd, hdcScreen, &ptDst, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
 
