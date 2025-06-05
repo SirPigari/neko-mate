@@ -11,7 +11,8 @@ import numpy as np
 print(f"[Info] Running on platform: {platform.system()} {platform.release()}")
 print(f"[Info] Architecture: {platform.architecture()[0]}")
 print(f"[Info] Python version: {platform.python_version()}")
-print(f"[Info] Python architecture: {platform.python_implementation()}")
+print(f"[Info] Python implementation: {platform.python_implementation()}")
+print(f"[Info] Python executable: {sys.executable}")
 
 dll_arch = "64" if platform.architecture()[0] == "64bit" else "32"
 
@@ -43,8 +44,15 @@ else:
     print(f"[Error] neko_msgbox{dll_arch}.dll not found!")
     sys.exit(1)
 
-neko_msgbox.show_msgbox.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
-neko_msgbox.show_msgbox.restype = ctypes.c_int
+try:
+    neko_msgbox.show_msgbox.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+    neko_msgbox.show_msgbox.restype = ctypes.c_int
+except AttributeError:
+    print("[Error] neko_msgbox.show_msgbox function signature is incorrect!")
+    sys.exit(1)
+except Exception as e:
+    print(f"[Error] Failed to set function signature for neko_msgbox: {e}")
+    sys.exit(1)
 
 if not os.path.exists(f"dll/neko_winapi{dll_arch}.dll"):
     neko_msgbox.show_msgbox(f"NekoMate - Error".encode("utf-8"), f"neko_winapi{dll_arch}.dll not found!".encode("utf-8"), 0x10)
@@ -54,28 +62,35 @@ if not os.path.exists(f"dll/neko_alpha{dll_arch}.dll"):
     neko_msgbox.show_msgbox(f"NekoMate - Error".encode("utf-8"), f"neko_alpha{dll_arch}.dll not found!".encode("utf-8"), 0x10)
     sys.exit(1)
 
-neko_api = ctypes.WinDLL(os.path.abspath(f"dll/neko_winapi{dll_arch}.dll"))
-neko_api.move_window.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
-neko_api.move_window.restype = ctypes.c_int
+try:
+    neko_api = ctypes.WinDLL(os.path.abspath(f"dll/neko_winapi{dll_arch}.dll"))
+    neko_api.move_window.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+    neko_api.move_window.restype = ctypes.c_int
 
-neko_api.set_always_on_top.argtypes = [ctypes.c_void_p, ctypes.c_int]
-neko_api.set_always_on_top.restype = ctypes.c_int
+    neko_api.set_always_on_top.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    neko_api.set_always_on_top.restype = ctypes.c_int
 
-neko_api.show_window.argtypes = [ctypes.c_void_p, ctypes.c_int]
-neko_api.show_window.restype = ctypes.c_int
+    neko_api.show_window.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    neko_api.show_window.restype = ctypes.c_int
 
-neko_alpha = ctypes.CDLL(os.path.abspath(f"dll/neko_alpha{dll_arch}.dll"))
+    neko_alpha = ctypes.CDLL(os.path.abspath(f"dll/neko_alpha{dll_arch}.dll"))
 
-neko_alpha.update_layered_window.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.c_int]
-neko_alpha.update_layered_window.restype = ctypes.c_int
+    neko_alpha.update_layered_window.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int, ctypes.c_int]
+    neko_alpha.update_layered_window.restype = ctypes.c_int
 
-neko_alpha.process_pixels_premult_rotate_flip.argtypes = [
-    ctypes.POINTER(ctypes.c_uint8),  # input_data
-    ctypes.c_int,                    # width
-    ctypes.c_int,                    # height
-    ctypes.POINTER(ctypes.c_uint8)  # output_data
-]
-neko_alpha.process_pixels_premult_rotate_flip.restype = None
+    neko_alpha.process_pixels_premult_rotate_flip.argtypes = [
+        ctypes.POINTER(ctypes.c_uint8),  # input_data
+        ctypes.c_int,                    # width
+        ctypes.c_int,                    # height
+        ctypes.POINTER(ctypes.c_uint8)  # output_data
+    ]
+    neko_alpha.process_pixels_premult_rotate_flip.restype = None
+except AttributeError:
+    neko_msgbox.show_msgbox(f"NekoMate - Error".encode("utf-8"), f"Failed to set function signatures for DLLs!".encode("utf-8"), 0x10)
+    sys.exit(1)
+except Exception as e:
+    neko_msgbox.show_msgbox(f"NekoMate - Error".encode("utf-8"), f"Failed to load DLLs: {e}".encode("utf-8"), 0x10)
+    sys.exit(1)
 
 # Constants
 SCREEN_WIDTH, SCREEN_HEIGHT = 128, 128
@@ -217,7 +232,6 @@ def move_window(x, y):
         clamped_x = max(0, min(x, max_x))
         clamped_y = max(0, min(y, max_y))
         try:
-            # Call your DLL function instead of win32gui.SetWindowPos
             res = neko_api.move_window(hwnd, clamped_x, clamped_y)
             if res == 0:
                 print("[Warning] neko_api.move_window failed")
