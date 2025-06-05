@@ -40,7 +40,7 @@ add_path_to_bashrc "/mingw64/bin"
 cd "$(dirname "$0")" || exit 1
 cd .. || exit 1
 rm -f ./*.dll
-mkdir -p "debug"
+mkdir -p "../debug"
 
 # Debug flags
 CFLAGS=( -g -O0 -Wall -Wextra -Wpedantic -v )
